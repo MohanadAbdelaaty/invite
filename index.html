@@ -120,6 +120,7 @@
   .meta svg{width:6.4cqw;height:6.4cqw;color:var(--gold)}
   .meta .pin{animation:bob 2.6s ease-in-out infinite}
   @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-.8cqw)}}
+  .togo{font-style:italic;font-size:4.2cqw;color:var(--gold);margin-top:4.2cqw;letter-spacing:.04em;min-height:1.3em}
   .meta span{font-weight:500;font-size:3.7cqw;line-height:1.25;color:var(--cocoa)}
 
   /* Below the image */
@@ -181,6 +182,8 @@
           <span id="timeText"></span>
         </div>
       </div>
+
+      <p class="togo fade d6" id="togo"></p>
     </div>
   </section>
   <a class="cue" href="#below" aria-label="Scroll down for details">Scroll<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></a>
@@ -216,7 +219,7 @@ const CONFIG = {
   venueName: "Our Home",
   venueAddress: "Street name, Area, City",       // used in the calendar file (change me)
   mapsUrl: "https://maps.google.com/?q=YOUR+ADDRESS+HERE", // change me
-  whatsapp: "201000000000"                       // country code, no + or spaces (change me)
+  whatsapp: "201211469675"                       // country code, no + or spaces (change me)
 };
 /* ========================================================= */
 
@@ -253,6 +256,16 @@ function tick(){
   document.getElementById("cs").textContent = pad(s);
 }
 tick(); setInterval(tick, 1000);
+
+/* "X days to go" line inside the invitation */
+(function(){
+  const el = document.getElementById("togo");
+  const now = new Date();
+  const a = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const b = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+  const n = Math.round((b - a) / 864e5);
+  el.textContent = n > 1 ? n + " days to go" : n === 1 ? "Tomorrow is the day" : n === 0 ? "Today is the day" : "Thank you for celebrating with us";
+})();
 
 /* Add to calendar (.ics built in the browser) */
 document.getElementById("calBtn").addEventListener("click", function(e){
