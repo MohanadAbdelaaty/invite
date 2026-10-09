@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Guest links</title>
+<style>
+  :root{--bg:#5a4a40;--panel:#6a574b;--ink:#f6ece4;--muted:#cdbdb0;--rose:#e4c9bf;--dark:#4a3b31;--line:rgba(255,255,255,.18)}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.45}
+  main{max-width:640px;margin:0 auto;padding:22px 16px 60px}
+  h1{font-size:1.35rem;font-weight:600;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:.9rem;margin-bottom:20px}
+  label{display:block;font-size:.8rem;letter-spacing:.04em;color:var(--muted);margin:16px 0 6px}
+  input,textarea{width:100%;background:rgba(0,0,0,.22);border:1px solid var(--line);border-radius:6px;color:var(--ink);padding:11px 12px;font:inherit;font-size:.95rem}
+  textarea{min-height:110px;resize:vertical}
+  input:focus,textarea:focus{outline:2px solid var(--rose);outline-offset:1px}
+  .hint{font-size:.78rem;color:var(--muted);margin-top:5px}
+  .btn{display:inline-block;border:1px solid var(--rose);background:transparent;color:var(--ink);padding:10px 14px;border-radius:6px;font:inherit;font-size:.85rem;cursor:pointer;text-decoration:none;text-align:center}
+  .btn.solid{background:var(--rose);color:var(--dark);font-weight:600}
+  .btn:active{transform:translateY(1px)}
+  .go{width:100%;margin-top:20px;padding:13px}
+  .count{margin:26px 0 8px;color:var(--muted);font-size:.85rem}
+  .row{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:10px}
+  .row.sent{opacity:.55}
+  .top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+  .name{font-weight:600;word-break:break-word}
+  .phone{font-size:.78rem;color:var(--muted)}
+  .link{font-size:.78rem;color:var(--muted);word-break:break-all;margin:6px 0 10px}
+  .warn{font-size:.76rem;color:#ffd9a8;margin:-4px 0 8px}
+  .acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .acts .btn{flex:1 1 120px}
+  .chk{display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--muted);margin-left:auto}
+  .chk input{width:auto}
+</style>
+</head>
+<body>
+<main>
+  <h1>Guest links</h1>
+  <p class="sub">Paste the names, get a personal invitation link for each guest.</p>
+
+  <label for="base">Invitation link</label>
+  <input id="base" type="url" inputmode="url" placeholder="https://username.github.io/invite/" autocomplete="off">
+  <div class="hint">The link of your invitation page, without anything after it.</div>
+
+  <label for="msg">Message</label>
+  <textarea id="msg"></textarea>
+  <div class="hint">{name} and {link} are filled in for each guest.</div>
+
+  <label for="names">Guests (one per line)</label>
+  <textarea id="names" placeholder="Ahmed, 01012345678&#10;Mona, 01123456789&#10;Amr and Family"></textarea>
+  <div class="hint">Add a phone number after a comma and the WhatsApp button opens that chat directly. Write names in English letters.</div>
+
+  <button class="btn solid go" id="go" type="button">Create links</button>
+
+  <div class="count" id="count"></div>
+  <div id="list"></div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const DEFAULT_MSG = "Hi {name}, we would love to have you with us at our engagement on Friday 16 October. Your invitation: {link}";
+
+function load(k, d){ try { return localStorage.getItem(k) || d; } catch(e){ return d; } }
+function save(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
+
+/* Prefill: guess the invitation link when this page sits next to it */
+let guess = "";
+if (location.protocol.startsWith("http")) guess = location.origin + location.pathname.replace(/[^\/]*$/, "");
+$("base").value = load("g_base", guess);
+$("msg").value = load("g_msg", DEFAULT_MSG);
+$("names").value = load("g_names", "");
+
+function phoneOf(raw){
+  let p = (raw || "").replace(/[^\d+]/g, "");
+  if (!p) return "";
+  if (p.startsWith("+")) return p.slice(1);
+  if (p.startsWith("00")) return p.slice(2);
+  if (p.startsWith("0")) return "20" + p.slice(1);
+  return p;
+}
+const sentKey = (n, p) => "g_sent|" + n + "|" + p;
+const isSent = k => load(k, "") === "1";
+
+function copy(text, btn){
+  const done = () => { const t = btn.textContent; btn.textContent = "Copied"; setTimeout(() => btn.textContent = t, 1200); };
+  if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(text).then(done, fallback); }
+  else fallback();
+  function fallback(){
+    const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta);
+    ta.select(); try { document.execCommand("copy"); done(); } catch(e){} ta.remove();
+  }
+}
+
+function render(){
+  const base = $("base").value.trim().split("#")[0].split("?")[0];
+  const tpl = $("msg").value || DEFAULT_MSG;
+  const lines = $("names").value.split("\n").map(s => s.trim()).filter(Boolean);
+  save("g_base", $("base").value.trim()); save("g_msg", $("msg").value); save("g_names", $("names").value);
+
+  const list = $("list"); list.innerHTML = "";
+  if (!base) { $("count").textContent = "Paste your invitation link first."; return; }
+  const root = base.endsWith("/") || /\.html?$/i.test(base) ? base : base + "/";
+
+  lines.forEach(line => {
+    const i = line.indexOf(",");
+    const name = (i === -1 ? line : line.slice(0, i)).trim();
+    const phone = phoneOf(i === -1 ? "" : line.slice(i + 1));
+    if (!name) return;
+    const link = root + "?name=" + encodeURIComponent(name);
+    const msg = tpl.split("{name}").join(name).split("{link}").join(link);
+    const wa = "https://wa.me/" + phone + "?text=" + encodeURIComponent(msg);
+    const key = sentKey(name, phone);
+
+    const row = document.createElement("div"); row.className = "row" + (isSent(key) ? " sent" : "");
+    const top = document.createElement("div"); top.className = "top";
+    const nm = document.createElement("div"); nm.className = "name"; nm.textContent = name;
+    const ph = document.createElement("div"); ph.className = "phone"; ph.textContent = phone ? "+" + phone : "no number";
+    top.append(nm, ph);
+
+    const lk = document.createElement("div"); lk.className = "link"; lk.textContent = link;
+    row.append(top, lk);
+
+    if (/[؀-ۿ]/.test(name)) {
+      const w = document.createElement("div"); w.className = "warn";
+      w.textContent = "Arabic letters in the name will show in a different font on the invitation. English letters look best.";
+      row.append(w);
+    }
+
+    const acts = document.createElement("div"); acts.className = "acts";
+    const a = document.createElement("a"); a.className = "btn solid"; a.href = wa; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Send on WhatsApp";
+    const c = document.createElement("button"); c.className = "btn"; c.type = "button"; c.textContent = "Copy link";
+    c.addEventListener("click", () => copy(link, c));
+    const lab = document.createElement("label"); lab.className = "chk";
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = isSent(key);
+    cb.addEventListener("change", () => { save(key, cb.checked ? "1" : ""); row.classList.toggle("sent", cb.checked); });
+    lab.append(cb, document.createTextNode("Sent"));
+    acts.append(a, c, lab);
+    row.append(acts);
+    list.append(row);
+  });
+  $("count").textContent = list.children.length ? list.children.length + " guest" + (list.children.length > 1 ? "s" : "") : "No guests yet.";
+}
+$("go").addEventListener("click", render);
+if ($("names").value.trim() && $("base").value.trim()) render();
+</script>
+</body>
+</html>
