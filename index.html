@@ -213,7 +213,6 @@
     </div>
 
     <div class="actions fade d6">
-      <a class="btn solid" id="mapBtn" target="_blank" rel="noopener">Get Directions</a>
       <a class="btn" id="calBtn" href="#">Add to Calendar</a>
       <a class="btn" id="rsvpBtn" target="_blank" rel="noopener">RSVP on WhatsApp</a>
     </div>
@@ -233,7 +232,6 @@ const CONFIG = {
   timeLabel: "7:00 PM",                         // text shown on the page
   venueName: "Our Home",
   venueAddress: "Street name, Area, City",       // used in the calendar file (change me)
-  mapsUrl: "https://maps.google.com/?q=YOUR+ADDRESS+HERE", // change me
   whatsapp: "201211469675"                       // country code, no + or spaces (change me)
 };
 /* ========================================================= */
@@ -242,7 +240,6 @@ const eventDate = new Date(CONFIG.year, CONFIG.month - 1, CONFIG.day, CONFIG.hou
 
 document.getElementById("timeText").textContent = CONFIG.timeLabel;
 document.getElementById("venueName").textContent = CONFIG.venueName;
-document.getElementById("mapBtn").href = CONFIG.mapsUrl;
 
 /* Personal greeting: ?name=Ahmed -> "Dear Ahmed," */
 const guest = new URLSearchParams(location.search).get("name");
@@ -252,7 +249,7 @@ if (guest) {
 }
 
 const rsvpText = encodeURIComponent(
-  "Hello " + CONFIG.groom + "! " + (guest ? "This is " + guest + ". " : "") +
+  "Hello " + CONFIG.groom + " and " + CONFIG.bride + "! " + (guest ? "This is " + guest + ". " : "") +
   "I received your invitation and I would love to attend on 16 October."
 );
 document.getElementById("rsvpBtn").href = "https://wa.me/" + CONFIG.whatsapp + "?text=" + rsvpText;
